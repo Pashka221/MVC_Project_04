@@ -7,6 +7,7 @@ abstract class Model extends \mysqli
     protected $primaryKey = 'id';
     private $inquiry = '';
     private $where_query = '';
+    private  $join_query='';
 
     public function __construct()
     {
@@ -14,13 +15,25 @@ abstract class Model extends \mysqli
         parent::__construct(DB_HOSTNAME, DB_USERNAME, DB_PASSWORD, DB_DATABASE, DB_PORT);
         $this->set_charset('UTF-8');
     }
-
+    /**
+     * Выгруска данных из таблицы базы данных
+     *
+     *
+     * @param  array $columns - массив колонок,которые нужно получить
+     * @return mixed
+     */
 
     # Вывод данных из таблица БД
-    public function get()
+    public function get($columns = [])
     {
-        $this->where_query = !$this->where_query ? '' : 'WHERE ' . $this->where_query;
-        $this->inquiry = $this->inquiry ?: "SELECT * FROM `{$this->table}` {$this->where_query}";
+        $NameColumns = ($columns ? implode(',',$columns):'*');
+        # Создаем базовый запрос на выгруску всех данных из данной таблицы
+        $this ->inquiry="SELECT *FROM `{$this->table}`";
+        # Добавление если существует JOIN соединение
+        $this->inquiry.=$this->join_query;
+        # обвление Where если они прописаны
+        $this->inquiry.=!$this->where_query ? '' : 'WHERE ' . $this->where_query;
+
 
         # Удаление после выполнения!!!!
         return $this->query($this->inquiry)->fetch_all(MYSQLI_ASSOC);
@@ -95,9 +108,21 @@ abstract class Model extends \mysqli
         return $this;
     }
 
+    /**
+     * Соединение таблиц в СУБД
+     * Используется Join
+     * @param $table - НАзвание таблицы
+     * @param $compound - Массив вида ['НазваниеКолонкиОсновнойТаблицы',"НазваниеКолонкиСоединяемойТаблицы"]
+     */
+    public function join($table,$compound)
+    {
+        $this -> join_query .="JOIN `{$table}` ON `{$this->table}`.`{$compound[0]}`=`{$table}`.`{$compound[1]}`";
+    }
+
     public function __destruct()
     {
         # закрываем
         $this->close();
     }
+
 }
